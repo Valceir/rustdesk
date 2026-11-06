@@ -386,6 +386,10 @@ impl Client {
         (i32, String),
     )> {
         debug_assert!(peer == interface.get_id());
+        // VSUP: o hbbs open source não faz a troca de chaves que o token exige; sem isto a conexão
+        // trava quando o analista está logado. O token só é usado pelo servidor Pro.
+        let _ = token;
+        let token = "";
         interface.update_direct(None);
         interface.update_received(false);
         match Self::_start(peer, key, token, conn_type, interface.clone()).await {

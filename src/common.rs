@@ -2493,6 +2493,11 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
 }
 
 pub fn load_custom_client() {
+    // VSUP: configuração da V.S.A. Solutions embutida; custom.txt externo é ignorado.
+    if VSUP_BUILTIN_CONFIG {
+        apply_vsup_config();
+        return;
+    }
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
@@ -2511,6 +2516,53 @@ pub fn load_custom_client() {
             return;
         };
         read_custom_client(&data.trim());
+    }
+}
+
+const VSUP_BUILTIN_CONFIG: bool = true;
+
+/// VSUP: servidor, chave e painel fixos (não podem ser alterados pelo usuário).
+fn apply_vsup_config() {
+    let data = serde_json::json!({
+        "override-settings": {
+            "custom-rendezvous-server": "vsup.vsasolutions.com.br",
+            "relay-server": "vsup.vsasolutions.com.br",
+            "api-server": "https://vsup.vsasolutions.com.br",
+            "key": "m3cvyKsQo7c19xPxQ+ZdExiIy5FOZhJkSVUNgiBN1q4=",
+            "enable-check-update": "N",
+            "allow-auto-update": "N",
+            "hide-server-settings": "Y",
+            "hide-proxy-settings": "Y",
+            "hide-websocket-settings": "Y",
+            "hide-powered-by-me": "Y",
+        },
+    });
+    *config::APP_NAME.write().unwrap() = "VSUP".to_owned();
+    let mut map_display_settings = HashMap::new();
+    for s in keys::KEYS_DISPLAY_SETTINGS {
+        map_display_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut map_local_settings = HashMap::new();
+    for s in keys::KEYS_LOCAL_SETTINGS {
+        map_local_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut map_settings = HashMap::new();
+    for s in keys::KEYS_SETTINGS {
+        map_settings.insert(s.replace("_", "-"), s);
+    }
+    let mut buildin_settings = HashMap::new();
+    for s in keys::KEYS_BUILDIN_SETTINGS {
+        buildin_settings.insert(s.replace("_", "-"), s);
+    }
+    if let Some(overwrite_settings) = data.get("override-settings") {
+        read_custom_client_advanced_settings(
+            overwrite_settings.clone(),
+            &map_display_settings,
+            &map_local_settings,
+            &map_settings,
+            &buildin_settings,
+            true,
+        );
     }
 }
 
