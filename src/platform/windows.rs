@@ -1620,9 +1620,19 @@ fn get_after_install(
     reg add HKEY_CLASSES_ROOT\\{ext}\\shell\\open\\command /f /ve /t REG_SZ /d \"\\\"{nested_exe}\\\" \\\"%%1\\\"\"
     netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=out action=allow program=\"{exe}\" enable=yes
     netsh advfirewall firewall add rule name=\"{app_name} Service\" dir=in action=allow program=\"{exe}\" enable=yes
+    {vsup_agent}
     {create_service}
     reg add HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System /f /v SoftwareSASGeneration /t REG_DWORD /d 1
-    ", create_service=get_create_service(&exe))
+    ", create_service=get_create_service(&exe), vsup_agent=vsup_agent_cmd(exe, "install"))
+}
+
+/// VSUP: o agente (inventário e ações) fica ao lado do executável e tem serviço próprio.
+fn vsup_agent_cmd(exe: &str, operation: &str) -> String {
+    let Some(dir) = std::path::Path::new(exe).parent() else {
+        return "".to_owned();
+    };
+    let agent = escape_nested_cmd_ampersands(&dir.join("vsup-agent.exe").to_string_lossy());
+    format!("if exist \"{agent}\" \"{agent}\" {operation}")
 }
 
 pub fn install_me(options: &str, path: String, silent: bool, debug: bool) -> ResultType<()> {
@@ -1851,12 +1861,14 @@ fn get_before_uninstall(kill_self: bool) -> ResultType<String> {
         "
     chcp 65001
     {remove_service}
+    {vsup_agent}
     taskkill /F /IM {broker_exe}
     taskkill /F /IM {app_name}.exe{filter}
     reg delete HKEY_CLASSES_ROOT\\.{ext} /f
     reg delete HKEY_CLASSES_ROOT\\{ext} /f
     netsh advfirewall firewall delete rule name=\"{app_name} Service\"
     ",
+        vsup_agent = vsup_agent_cmd(&exe, "uninstall"),
         broker_exe = WIN_TOPMOST_INJECTED_PROCESS_EXE,
     ))
 }

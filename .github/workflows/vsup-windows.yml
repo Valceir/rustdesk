@@ -154,6 +154,26 @@ jobs:
             Write-Host "Sem driver de impressora."
           }
 
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: vsup/agent/go.mod
+          cache-dependency-path: vsup/agent/go.sum
+
+      - name: Build VSUP Agent
+        shell: bash
+        env:
+          # As dependências vêm direto do GitHub (go.mod tem replace para os espelhos); go.sum fixa os hashes.
+          GOPROXY: direct
+          GOSUMDB: "off"
+          GOFLAGS: -mod=readonly
+          CGO_ENABLED: "0"
+        run: |
+          cd vsup/agent
+          go vet ./...
+          go build -trimpath -ldflags "-s -w -X main.Version=${VSUP_VERSION}" -o ../../rustdesk/vsup-agent.exe .
+          ls -l ../../rustdesk/vsup-agent.exe
+
       - name: find Runner.res
         continue-on-error: true
         shell: bash
