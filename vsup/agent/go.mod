@@ -2,7 +2,6 @@ module vsup-agent
 
 go 1.24.0
 
-toolchain go1.24.7
 
 replace golang.org/x/sys => github.com/golang/sys v0.38.0
 

@@ -167,6 +167,7 @@ jobs:
           GOPROXY: direct
           GOSUMDB: "off"
           GOFLAGS: -mod=readonly
+          GOTOOLCHAIN: local
           CGO_ENABLED: "0"
         run: |
           cd vsup/agent
