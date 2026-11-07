@@ -171,9 +171,11 @@ jobs:
         shell: bash
         run: |
           sed -i '/dpiAware/d' res/manifest.xml
+          # O instalador procura <nome do app>.exe; sem renomear, o serviço aponta para um arquivo que não existe.
+          mv ./rustdesk/rustdesk.exe ./rustdesk/VSUP.exe
           pushd ./libs/portable
           pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/VSUP.exe
           popd
           mkdir -p ./SaidaVSUP
           mv ./target/release/rustdesk-portable-packer.exe ./SaidaVSUP/VSUP-${VSUP_VERSION}-windows.exe

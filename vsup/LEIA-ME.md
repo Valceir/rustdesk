@@ -9,7 +9,7 @@ Fork do RustDesk com a configuração da V.S.A. Solutions embutida. Desenvolvido
 | `src/common.rs` | `apply_vsup_config()`: nome VSUP, servidor, chave e painel fixos; telas de servidor ocultas; sem atualização automática |
 | `src/client.rs` | Não envia o token ao hbbs (o hbbs open source não faz a troca de chaves e a conexão travava com analista logado) |
 | `res/`, `flutter/assets/`, `flutter/windows/runner/` | Ícones, logos e dados do executável |
-| `.github/workflows/vsup-windows.yml` | Compila só o Windows x64 e publica a release `vsup-X.Y.Z` |
+| `.github/workflows/vsup-windows.yml` | Compila só o Windows x64, renomeia o executável para `VSUP.exe` (o instalador exige) e publica a release `vsup-X.Y.Z` |
 
 ## Publicar uma versão
 
