@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shirou/gopsutil/v4/process"
 	"github.com/yusufpapurcu/wmi"
 	"golang.org/x/sys/windows/registry"
 )
@@ -84,9 +85,11 @@ type avProduct struct {
 }
 
 func collectPlatform(inv *Inventory) {
-	q := func(what string, dst any, where string, ns ...string) bool {
+	// Campo que não existir numa versão do Windows não derruba a consulta inteira.
+	wmi.DefaultClient.AllowMissingFields = true
+	q := func(what, class string, dst any, where string, ns ...string) bool {
 		var err error
-		query := wmi.CreateQuery(dst, where)
+		query := wmi.CreateQuery(dst, where, class)
 		if len(ns) > 0 {
 			err = wmi.QueryNamespace(query, dst, ns[0])
 		} else {
@@ -100,7 +103,7 @@ func collectPlatform(inv *Inventory) {
 	}
 
 	var oss []win32OS
-	if q("sistema", &oss, "") && len(oss) > 0 {
+	if q("sistema", "Win32_OperatingSystem", &oss, "") && len(oss) > 0 {
 		o := oss[0]
 		inv.OS.Name = strings.TrimSpace(o.Caption)
 		inv.OS.Version = o.Version
@@ -115,7 +118,7 @@ func collectPlatform(inv *Inventory) {
 	}
 
 	var cs []win32CS
-	if q("computador", &cs, "") && len(cs) > 0 {
+	if q("computador", "Win32_ComputerSystem", &cs, "") && len(cs) > 0 {
 		inv.Computer.Manufacturer = strings.TrimSpace(cs[0].Manufacturer)
 		inv.Computer.Model = strings.TrimSpace(cs[0].Model)
 		inv.LoggedUser = cs[0].UserName
@@ -124,18 +127,18 @@ func collectPlatform(inv *Inventory) {
 		}
 	}
 	var board []win32Board
-	if q("placa-mãe", &board, "") && len(board) > 0 {
+	if q("placa-mãe", "Win32_BaseBoard", &board, "") && len(board) > 0 {
 		inv.Computer.Board = strings.TrimSpace(board[0].Manufacturer + " " + board[0].Product)
 		inv.Computer.BoardSerial = clean(board[0].SerialNumber)
 	}
 	var bios []win32BIOS
-	if q("bios", &bios, "") && len(bios) > 0 {
+	if q("bios", "Win32_BIOS", &bios, "") && len(bios) > 0 {
 		inv.Computer.BIOS = strings.TrimSpace(bios[0].Manufacturer + " " + bios[0].SMBIOSBIOSVersion)
 		inv.Computer.Serial = clean(bios[0].SerialNumber)
 	}
 
 	var mems []win32Mem
-	if q("pentes de memória", &mems, "") {
+	if q("pentes de memória", "Win32_PhysicalMemory", &mems, "") {
 		for _, m := range mems {
 			inv.Memory.Modules = append(inv.Memory.Modules, MemModule{
 				Capacity: m.Capacity, Speed: m.Speed, Manufacturer: clean(m.Manufacturer),
@@ -145,14 +148,14 @@ func collectPlatform(inv *Inventory) {
 	}
 
 	var gpus []win32GPU
-	if q("vídeo", &gpus, "") {
+	if q("vídeo", "Win32_VideoController", &gpus, "") {
 		for _, g := range gpus {
 			inv.GPUs = append(inv.GPUs, GPU{Name: g.Name, Driver: g.DriverVersion})
 		}
 	}
 
 	var lds []win32LogicalDisk
-	if q("rótulos", &lds, "WHERE DriveType = 3") {
+	if q("rótulos", "Win32_LogicalDisk", &lds, "WHERE DriveType = 3") {
 		for i := range inv.Volumes {
 			for _, l := range lds {
 				if strings.EqualFold(strings.TrimRight(inv.Volumes[i].Mount, `\`), l.DeviceID) {
@@ -163,7 +166,7 @@ func collectPlatform(inv *Inventory) {
 	}
 
 	var pds []msftPhysicalDisk
-	if err := wmi.QueryNamespace(wmi.CreateQuery(&pds, ""), &pds, `root\Microsoft\Windows\Storage`); err == nil && len(pds) > 0 {
+	if err := wmi.QueryNamespace(wmi.CreateQuery(&pds, "", "MSFT_PhysicalDisk"), &pds, `root\Microsoft\Windows\Storage`); err == nil && len(pds) > 0 {
 		for _, d := range pds {
 			inv.Disks = append(inv.Disks, PhysDisk{
 				Model: strings.TrimSpace(d.FriendlyName), Size: d.Size, Type: mediaType(d.MediaType),
@@ -172,7 +175,7 @@ func collectPlatform(inv *Inventory) {
 		}
 	} else {
 		var dds []win32DiskDrive
-		if q("discos", &dds, "") {
+		if q("discos", "Win32_DiskDrive", &dds, "") {
 			for _, d := range dds {
 				inv.Disks = append(inv.Disks, PhysDisk{Model: d.Model, Size: d.Size, Bus: d.InterfaceType, Serial: clean(d.SerialNumber)})
 			}
@@ -180,7 +183,7 @@ func collectPlatform(inv *Inventory) {
 	}
 
 	var ncs []win32NetCfg
-	if q("configuração de rede", &ncs, "WHERE IPEnabled = TRUE") {
+	if q("configuração de rede", "Win32_NetworkAdapterConfiguration", &ncs, "WHERE IPEnabled = TRUE") {
 		for i := range inv.Network {
 			for _, c := range ncs {
 				if strings.EqualFold(strings.ReplaceAll(c.MACAddress, "-", ":"), inv.Network[i].MAC) {
@@ -196,7 +199,7 @@ func collectPlatform(inv *Inventory) {
 
 	// Só existe em edições de estação de trabalho (não em Windows Server).
 	var avs []avProduct
-	if err := wmi.QueryNamespace(wmi.CreateQuery(&avs, ""), &avs, `root\SecurityCenter2`); err == nil {
+	if err := wmi.QueryNamespace(wmi.CreateQuery(&avs, "", "AntiVirusProduct"), &avs, `root\SecurityCenter2`); err == nil {
 		for _, a := range avs {
 			inv.Antivirus = append(inv.Antivirus, Antivirus{
 				Name: a.DisplayName, Enabled: a.ProductState&0x1000 != 0, Updated: a.ProductState&0x10 == 0,
@@ -204,7 +207,35 @@ func collectPlatform(inv *Inventory) {
 		}
 	}
 
+	// Em sessões de Área de Trabalho Remota o Win32_ComputerSystem não mostra o usuário.
+	if users := desktopUsers(); len(users) > 0 {
+		inv.LoggedUser = strings.Join(users, ", ")
+	}
+
 	inv.Programs = installedPrograms()
+}
+
+// desktopUsers lista quem tem a área de trabalho (explorer.exe) aberta, inclusive via RDP.
+func desktopUsers() []string {
+	procs, err := process.Processes()
+	if err != nil {
+		return nil
+	}
+	seen := map[string]bool{}
+	var out []string
+	for _, p := range procs {
+		name, err := p.Name()
+		if err != nil || !strings.EqualFold(name, "explorer.exe") {
+			continue
+		}
+		u, err := p.Username()
+		if err != nil || u == "" || seen[strings.ToLower(u)] {
+			continue
+		}
+		seen[strings.ToLower(u)] = true
+		out = append(out, u)
+	}
+	return out
 }
 
 func installedPrograms() []Program {
