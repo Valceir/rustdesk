@@ -256,8 +256,8 @@ func readRustdeskID() string {
 		if err != nil {
 			continue
 		}
-		if m := idRe.FindSubmatch(data); m != nil {
-			return strings.TrimSpace(string(m[1]))
+		if id := parseRustdeskID(data, machineGUID()); id != "" {
+			return id
 		}
 	}
 	return ""
