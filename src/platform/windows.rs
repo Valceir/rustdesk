@@ -3651,9 +3651,11 @@ chcp 65001
 sc stop {app_name}
 taskkill /F /IM {app_name}.exe{filter}
 {reg_cmd}
+sc stop VSUPAgent
 {copy_exe}
 {rename_exe}
 {remove_meta_toml}
+{vsup_agent}
 {restore_service_cmd}
 {uninstall_printer_cmd}
 {install_printer_cmd}
@@ -3662,6 +3664,7 @@ taskkill /F /IM {app_name}.exe{filter}
         app_name = app_name,
         copy_exe = copy_exe_cmd(&src_exe, &exe, &path)?,
         rename_exe = rename_exe_cmd(&src_exe, &path)?,
+        vsup_agent = vsup_agent_cmd(&exe, "install"),
         remove_meta_toml = remove_meta_toml_cmd(is_msi.unwrap_or(true), &path),
         sleep = if debug { "timeout 300" } else { "" },
     );
