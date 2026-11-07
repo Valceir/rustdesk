@@ -134,7 +134,8 @@ func (a *agent) sendInventory() error {
 
 func (a *agent) waitCommands() ([]command, error) {
 	var resp struct {
-		Commands []command `json:"commands"`
+		Commands    []command `json:"commands"`
+		LiveSeconds int       `json:"live_seconds"`
 	}
 	req, err := http.NewRequest("GET", PanelURL+"/api/agent/poll", nil)
 	if err != nil {
@@ -148,6 +149,9 @@ func (a *agent) waitCommands() ([]command, error) {
 	defer r.Body.Close()
 	if err := decode(r, &resp); err != nil {
 		return nil, err
+	}
+	if resp.LiveSeconds > 0 {
+		a.startLive(resp.LiveSeconds)
 	}
 	return resp.Commands, nil
 }
