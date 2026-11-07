@@ -29,6 +29,7 @@ O servidor (`rustdesk-server`) é fixado no repositório do painel.
 - Serviço `VSUPAgent` (LocalSystem). Log em `C:\ProgramData\VSUP\agent.log`.
 - Lê o ID do VSUP no arquivo de configuração do serviço e se registra no painel (`/api/agent/register`).
 - Envia o inventário ao iniciar e a cada 6 horas, e espera comandos por long-poll (`/api/agent/poll`).
-- Só executa comandos de uma lista fechada no próprio código. O painel não consegue mandar comando livre.
+- Só executa as ações de `actions.go` (lista fechada). O painel não consegue mandar comando livre.
+- Ações demoradas (sfc, otimizar disco) rodam em paralelo; reiniciar e desligar avisam o usuário com 1 minuto.
 - Testes: `vsup-agent.exe inventory` (mostra o JSON) e `vsup-agent.exe debug` (roda no console).
 - Requer Windows 10 ou mais novo (Go 1.24).

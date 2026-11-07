@@ -33,3 +33,23 @@ func TestParseEncID(t *testing.T) {
 		t.Fatalf("wrong key should fail, got %q", got)
 	}
 }
+
+func TestDecodeConsole(t *testing.T) {
+	// "Configuração" em CP850
+	cp := []byte{'C', 'o', 'n', 'f', 'i', 'g', 'u', 'r', 'a', 0x87, 0xC6, 'o'}
+	if got := decodeConsole(cp); got != "Configuração" {
+		t.Fatalf("cp850: %q", got)
+	}
+	u16 := []byte{'O', 0, 'k', 0, '\r', 0, '\n', 0}
+	if got := decodeConsole(u16); got != "Ok\n" {
+		t.Fatalf("utf16: %q", got)
+	}
+}
+
+func TestPingRejectsInjection(t *testing.T) {
+	for _, bad := range []string{"8.8.8.8 & del x", "-t", "a|b", "x;y"} {
+		if _, err := actPing(t.Context(), map[string]string{"target": bad}); err == nil {
+			t.Fatalf("aceitou %q", bad)
+		}
+	}
+}

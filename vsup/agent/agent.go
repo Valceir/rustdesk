@@ -154,22 +154,36 @@ func (a *agent) waitCommands() ([]command, error) {
 
 func (a *agent) execute(c command) {
 	logf("comando %s (%s)", c.Type, c.ID)
-	ok, output := true, ""
-	switch c.Type {
-	case "inventory":
+	if c.Type == "inventory" {
+		ok, output := true, "Inventário atualizado"
 		if err := a.sendInventory(); err != nil {
 			ok, output = false, err.Error()
-		} else {
-			output = "Inventário atualizado"
 		}
-	default:
-		ok, output = false, "Comando não suportado nesta versão do agente ("+Version+")"
+		a.report(c.ID, ok, output)
+		return
 	}
-	err := a.call("POST", "/api/agent/result", a.st.Token, map[string]any{
-		"id": c.ID, "ok": ok, "output": output,
-	}, nil)
-	if err != nil {
-		logf("resultado do comando %s: %v", c.ID, err)
+	// Ações podem demorar (sfc, otimização de disco): rodam em paralelo sem travar o recebimento.
+	token := a.st.Token
+	go func() {
+		ok, output := runAction(c)
+		logf("comando %s (%s) terminou: ok=%v", c.Type, c.ID, ok)
+		a.reportWith(token, c.ID, ok, output)
+	}()
+}
+
+func (a *agent) report(id string, ok bool, output string) {
+	a.reportWith(a.st.Token, id, ok, output)
+}
+
+func (a *agent) reportWith(token, id string, ok bool, output string) {
+	body := map[string]any{"id": id, "ok": ok, "output": output}
+	for i := 0; i < 5; i++ {
+		err := a.call("POST", "/api/agent/result", token, body, nil)
+		if err == nil {
+			return
+		}
+		logf("resultado do comando %s: %v", id, err)
+		time.Sleep(time.Duration(i+1) * 10 * time.Second)
 	}
 }
 
