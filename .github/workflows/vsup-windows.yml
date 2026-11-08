@@ -6,7 +6,7 @@ name: VSUP - compilar
 on:
   push:
     branches: [vsup]
-    paths: [VSUP_VERSAO, .github/workflows/vsup-build.yml]
+    paths: [VSUP_VERSAO, .github/workflows/vsup-windows.yml]
   workflow_dispatch:
 
 permissions:

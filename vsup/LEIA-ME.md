@@ -11,7 +11,7 @@ Fork do RustDesk com a configuração da V.S.A. Solutions embutida. Desenvolvido
 | `src/platform/windows.rs` | `vsup_agent_cmd()`: a instalação roda `vsup-agent.exe install` e a desinstalação roda `uninstall` |
 | `vsup/agent/` | Agente VSUP em Go: serviço `VSUPAgent` com inventário e canal de comandos com o painel |
 | `res/`, `flutter/assets/`, `flutter/windows/runner/` | Ícones, logos e dados do executável |
-| `.github/workflows/vsup-build.yml` | Compila Windows x64 (renomeia para `VSUP.exe`, que o instalador exige), Android (APK universal arm64+armv7) e macOS (Apple Silicon e Intel) e publica tudo na release `vsup-X.Y.Z` |
+| `.github/workflows/vsup-windows.yml` (nome histórico; compila todas as plataformas) | Compila Windows x64 (renomeia para `VSUP.exe`, que o instalador exige), Android (APK universal arm64+armv7) e macOS (Apple Silicon e Intel) e publica tudo na release `vsup-X.Y.Z` |
 | `flutter/android/` | `applicationId` `br.com.vsasolutions.vsup`, nome VSUP, ícones |
 | `flutter/macos/` | `PRODUCT_NAME` VSUP (`VSUP.app`), bundle `br.com.vsasolutions.vsup`, ícone; `build.py` copia o `service` para `VSUP.app` |
 
