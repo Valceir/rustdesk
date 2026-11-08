@@ -1,4 +1,4 @@
-# VSUP: compila Windows x64, Android (APK universal) e macOS (Apple Silicon e Intel)
+# VSUP: compila (multiplataforma) Windows x64, Android (APK universal) e macOS (Apple Silicon e Intel)
 # e publica tudo na release vsup-X.Y.Z.
 # Dispara quando o arquivo VSUP_VERSAO muda na branch vsup, ou manualmente pela aba Actions.
 name: VSUP - compilar
