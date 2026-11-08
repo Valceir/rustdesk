@@ -11,12 +11,16 @@ Fork do RustDesk com a configuração da V.S.A. Solutions embutida. Desenvolvido
 | `src/platform/windows.rs` | `vsup_agent_cmd()`: a instalação roda `vsup-agent.exe install` e a desinstalação roda `uninstall` |
 | `vsup/agent/` | Agente VSUP em Go: serviço `VSUPAgent` com inventário e canal de comandos com o painel |
 | `res/`, `flutter/assets/`, `flutter/windows/runner/` | Ícones, logos e dados do executável |
-| `.github/workflows/vsup-windows.yml` | Compila só o Windows x64, renomeia o executável para `VSUP.exe` (o instalador exige) e publica a release `vsup-X.Y.Z` |
+| `.github/workflows/vsup-build.yml` | Compila Windows x64 (renomeia para `VSUP.exe`, que o instalador exige), Android (APK universal arm64+armv7) e macOS (Apple Silicon e Intel) e publica tudo na release `vsup-X.Y.Z` |
+| `flutter/android/` | `applicationId` `br.com.vsasolutions.vsup`, nome VSUP, ícones |
+| `flutter/macos/` | `PRODUCT_NAME` VSUP (`VSUP.app`), bundle `br.com.vsasolutions.vsup`, ícone; `build.py` copia o `service` para `VSUP.app` |
 
 ## Publicar uma versão
 
 1. Altere `VSUP_VERSAO` (ex.: `1.0.1`) e faça o push na branch `vsup`.
-2. O GitHub Actions compila (40–60 min) e publica a release `vsup-1.0.1` com `VSUP-1.0.1-windows.exe`.
+2. O GitHub Actions compila (60–90 min) e publica a release `vsup-1.0.1` com `VSUP-1.0.1-windows.exe`,
+   `VSUP-1.0.1-android.apk`, `VSUP-1.0.1-macos-apple-silicon.dmg` e `VSUP-1.0.1-macos-intel.dmg`.
+   Se o Android ou o Mac falharem, o Windows é publicado mesmo assim.
 3. O painel (`/baixar`) passa a entregar a versão nova sozinho.
 
 ## Atualizar a base do RustDesk
@@ -34,3 +38,13 @@ O servidor (`rustdesk-server`) é fixado no repositório do painel.
 - Desempenho em tempo real (`live.go`): amostra a cada 1 s só quando o painel pede (`live_seconds`); cada envio renova o prazo e a coleta para sozinha sem ninguém olhando.
 - Testes: `vsup-agent.exe inventory` (mostra o JSON) e `vsup-agent.exe debug` (roda no console).
 - Requer Windows 10 ou mais novo (Go 1.24).
+
+## Secrets necessários (Settings → Secrets and variables → Actions)
+
+| Secret | Para quê |
+|---|---|
+| `VSUP_ANDROID_KEYSTORE` | Keystore do Android em base64 (alias `vsup`). **Nunca troque**: os celulares só aceitam atualização assinada com a mesma chave. |
+| `VSUP_ANDROID_KEY_PASSWORD` | Senha do keystore e da chave |
+
+O macOS sai com assinatura ad-hoc (sem conta Apple). Na primeira abertura: Ajustes do Sistema →
+Privacidade e Segurança → "Abrir mesmo assim". Com uma conta Apple Developer dá para assinar e notarizar.
