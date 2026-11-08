@@ -504,11 +504,32 @@ jobs:
           fi
           ./build.py --flutter --hwcodec --unix-file-copy-paste ${{ matrix.job.extra-build-args }}
 
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: vsup/agent/go.mod
+          cache-dependency-path: vsup/agent/go.sum
+
+      - name: Build VSUP Agent
+        env:
+          GOPROXY: direct
+          GOSUMDB: "off"
+          GOFLAGS: -mod=readonly
+          GOTOOLCHAIN: local
+          CGO_ENABLED: "0"
+        run: |
+          case "${{ matrix.job.target }}" in aarch64-*) GOARCH=arm64 ;; *) GOARCH=amd64 ;; esac
+          cd vsup/agent
+          GOOS=darwin GOARCH=$GOARCH go vet ./...
+          GOOS=darwin GOARCH=$GOARCH go build -trimpath -ldflags "-s -w -X main.Version=${VSUP_VERSION}" \
+            -o ../../flutter/build/macos/Build/Products/Release/VSUP.app/Contents/MacOS/vsup-agent .
+          file ../../flutter/build/macos/Build/Products/Release/VSUP.app/Contents/MacOS/vsup-agent
+
       - name: Create DMG
         run: |
           APP=./flutter/build/macos/Build/Products/Release/VSUP.app
           test -x "$APP/Contents/MacOS/VSUP"
-          # O build.py copia o binário "service" depois da assinatura do Flutter: assina de novo (ad-hoc)
+          # O build.py copia o "service" e o passo anterior o vsup-agent depois da assinatura do Flutter: assina de novo (ad-hoc)
           codesign --force --deep -s - "$APP"
           codesign --verify --deep --strict "$APP"
           CREATE_DMG="$(readlink -f "$(command -v create-dmg)")"

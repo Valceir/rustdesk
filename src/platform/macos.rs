@@ -853,10 +853,35 @@ pub fn lock_screen() {
     .ok();
 }
 
+/// VSUP: o agente (inventário e ações) vem dentro do app e roda como LaunchDaemon próprio.
+/// "install" é idempotente e reinicia o agente, então a instalação e cada atualização o deixam na versão do app.
+fn vsup_start_agent() {
+    let Some(agent) = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|dir| dir.join("vsup-agent")))
+    else {
+        return;
+    };
+    if !agent.exists() {
+        return;
+    }
+    std::thread::spawn(move || {
+        match std::process::Command::new(&agent).arg("install").output() {
+            Ok(out) => log::info!(
+                "vsup-agent install: {} {}",
+                out.status,
+                String::from_utf8_lossy(&out.stdout).trim()
+            ),
+            Err(e) => log::error!("vsup-agent install: {}", e),
+        }
+    });
+}
+
 /// Starts the macOS system service IPC listener and the background
 /// silent auto-update thread.
 pub fn start_os_service() {
     log::info!("Username: {}", crate::username());
+    vsup_start_agent();
     // Silent auto-update — runs as root via LaunchDaemon, no osascript dialog needed
     crate::updater::start_auto_update_macos();
     if let Err(err) = crate::ipc::start("_service") {

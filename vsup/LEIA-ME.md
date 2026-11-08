@@ -9,6 +9,7 @@ Fork do RustDesk com a configuração da V.S.A. Solutions embutida. Desenvolvido
 | `src/common.rs` | `apply_vsup_config()`: nome VSUP, servidor, chave e painel fixos; telas de servidor ocultas; sem atualização automática |
 | `src/client.rs` | Não envia o token ao hbbs (o hbbs open source não faz a troca de chaves e a conexão travava com analista logado) |
 | `src/platform/windows.rs` | `vsup_agent_cmd()`: a instalação roda `vsup-agent.exe install` e a desinstalação roda `uninstall` |
+| `src/platform/macos.rs` | `vsup_start_agent()`: o serviço do VSUP (root) roda `vsup-agent install` ao iniciar |
 | `vsup/agent/` | Agente VSUP em Go: serviço `VSUPAgent` com inventário e canal de comandos com o painel |
 | `res/`, `flutter/assets/`, `flutter/windows/runner/` | Ícones, logos e dados do executável |
 | `.github/workflows/vsup-windows.yml` (nome histórico; compila todas as plataformas) | Compila Windows x64 (renomeia para `VSUP.exe`, que o instalador exige), Android (APK universal arm64+armv7) e macOS (Apple Silicon e Intel) e publica tudo na release `vsup-X.Y.Z` |
@@ -36,6 +37,10 @@ O servidor (`rustdesk-server`) é fixado no repositório do painel.
 - Só executa as ações de `actions.go` (lista fechada). O painel não consegue mandar comando livre.
 - Ações demoradas (sfc, otimizar disco) rodam em paralelo; reiniciar e desligar avisam o usuário com 1 minuto.
 - Desempenho em tempo real (`live.go`): amostra a cada 1 s só quando o painel pede (`live_seconds`); cada envio renova o prazo e a coleta para sozinha sem ninguém olhando.
+- macOS: LaunchDaemon `br.com.vsasolutions.vsup.agent` (root), binário em `VSUP.app/Contents/MacOS/vsup-agent`.
+  É instalado e reiniciado pelo serviço do VSUP a cada início (instalação e atualizações) e se remove sozinho
+  quando o serviço do VSUP é desinstalado. Log em `/Library/Logs/VSUP/agent.log`. Ações: as mesmas do Windows,
+  menos otimizar disco, sfc e Windows Update; mais `mac_update` (`softwareupdate --list`).
 - Testes: `vsup-agent.exe inventory` (mostra o JSON) e `vsup-agent.exe debug` (roda no console).
 - Requer Windows 10 ou mais novo (Go 1.24).
 

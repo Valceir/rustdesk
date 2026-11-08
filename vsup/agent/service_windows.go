@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"golang.org/x/sys/windows/registry"
@@ -127,4 +128,28 @@ func machineGUID() string {
 	defer k.Close()
 	v, _, _ := k.GetStringValue("MachineGuid")
 	return v
+}
+
+// Onde o VSUP guarda a configuração (com o ID) no Windows.
+func configCandidates() []string {
+	win := os.Getenv("SystemRoot")
+	if win == "" {
+		win = `C:\Windows`
+	}
+	c := []string{
+		filepath.Join(win, `ServiceProfiles\LocalService\AppData\Roaming\VSUP\config\VSUP.toml`),
+		filepath.Join(win, `System32\config\systemprofile\AppData\Roaming\VSUP\config\VSUP.toml`),
+	}
+	if d, err := os.UserConfigDir(); err == nil {
+		c = append(c, filepath.Join(d, `VSUP\config\VSUP.toml`))
+	}
+	return c
+}
+
+func logDir() string {
+	d := os.Getenv("ProgramData")
+	if d == "" {
+		d = `C:\ProgramData`
+	}
+	return filepath.Join(d, "VSUP")
 }

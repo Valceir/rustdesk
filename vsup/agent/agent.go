@@ -258,17 +258,7 @@ func readRustdeskID() string {
 	if id := os.Getenv("VSUP_TEST_ID"); id != "" {
 		return id
 	}
-	win := os.Getenv("SystemRoot")
-	if win == "" {
-		win = `C:\Windows`
-	}
-	candidates := []string{
-		filepath.Join(win, `ServiceProfiles\LocalService\AppData\Roaming\VSUP\config\VSUP.toml`),
-		filepath.Join(win, `System32\config\systemprofile\AppData\Roaming\VSUP\config\VSUP.toml`),
-	}
-	if d, err := os.UserConfigDir(); err == nil {
-		candidates = append(candidates, filepath.Join(d, `VSUP\config\VSUP.toml`))
-	}
+	candidates := configCandidates()
 	for _, p := range candidates {
 		data, err := os.ReadFile(p)
 		if err != nil {
@@ -317,7 +307,7 @@ func logf(format string, args ...any) {
 		fmt.Print(line)
 		return
 	}
-	dir := filepath.Join(programData(), "VSUP")
+	dir := logDir()
 	_ = os.MkdirAll(dir, 0o755)
 	p := filepath.Join(dir, "agent.log")
 	if fi, err := os.Stat(p); err == nil && fi.Size() > 2<<20 {
@@ -329,11 +319,4 @@ func logf(format string, args ...any) {
 	}
 	defer f.Close()
 	_, _ = f.WriteString(line)
-}
-
-func programData() string {
-	if d := os.Getenv("ProgramData"); d != "" {
-		return d
-	}
-	return `C:\ProgramData`
 }

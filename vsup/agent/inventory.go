@@ -17,6 +17,7 @@ import (
 type Inventory struct {
 	CollectedAt  time.Time   `json:"collected_at"`
 	AgentVersion string      `json:"agent_version"`
+	Platform     string      `json:"platform,omitempty"` // "mac"; vazio = Windows
 	Hostname     string      `json:"hostname"`
 	LoggedUser   string      `json:"logged_user,omitempty"`
 	BootTime     time.Time   `json:"boot_time"`
