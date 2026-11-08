@@ -418,7 +418,7 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          - { target: aarch64-apple-darwin, os: macos-14, arch: apple-silicon, extra-build-args: "--screencapturekit", vcpkg-triplet: arm64-osx }
+          - { target: aarch64-apple-darwin, os: macos-15, arch: apple-silicon, extra-build-args: "--screencapturekit", vcpkg-triplet: arm64-osx }
           - { target: x86_64-apple-darwin, os: macos-15-intel, arch: intel, extra-build-args: "", vcpkg-triplet: x64-osx }
     steps:
       - name: Export GitHub Actions cache environment variables
