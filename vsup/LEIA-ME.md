@@ -38,8 +38,8 @@ O servidor (`rustdesk-server`) é fixado no repositório do painel.
 - Ações demoradas (sfc, otimizar disco) rodam em paralelo; reiniciar e desligar avisam o usuário com 1 minuto.
 - Desempenho em tempo real (`live.go`): amostra a cada 1 s só quando o painel pede (`live_seconds`); cada envio renova o prazo e a coleta para sozinha sem ninguém olhando.
 - macOS: LaunchDaemon `br.com.vsasolutions.vsup.agent` (root), binário em `VSUP.app/Contents/MacOS/vsup-agent`.
-  É instalado e reiniciado pelo serviço do VSUP a cada início (instalação e atualizações) e se remove sozinho
-  quando o serviço do VSUP é desinstalado. Log em `/Library/Logs/VSUP/agent.log`. Ações: as mesmas do Windows,
+  É instalado pelo serviço do VSUP quando ele inicia (ou à mão: `sudo .../vsup-agent install`). Reinicia
+  sozinho quando o VSUP.app é atualizado e se remove quando o app é apagado. Log em `/Library/Logs/VSUP/agent.log`. Ações: as mesmas do Windows,
   menos otimizar disco, sfc e Windows Update; mais `mac_update` (`softwareupdate --list`).
 - Testes: `vsup-agent.exe inventory` (mostra o JSON) e `vsup-agent.exe debug` (roda no console).
 - Requer Windows 10 ou mais novo (Go 1.24).

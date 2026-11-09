@@ -56,9 +56,10 @@ func runService() {
 	}()
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGTERM, syscall.SIGINT)
-	check := time.NewTicker(5 * time.Minute)
+	exe, _ := os.Executable()
+	start, _ := os.Stat(exe)
+	check := time.NewTicker(time.Minute)
 	defer check.Stop()
-	missing := 0
 	for {
 		select {
 		case <-sig:
@@ -69,23 +70,22 @@ func runService() {
 			}
 			return
 		case <-check.C:
-			// O VSUP foi desinstalado (serviço removido): o agente sai junto.
-			if vsupServiceInstalled() {
-				missing = 0
-				continue
-			}
-			if missing++; missing >= 2 {
-				logf("serviço do VSUP não está mais instalado: removendo o agente")
+			now, err := os.Stat(exe)
+			switch {
+			case errors.Is(err, os.ErrNotExist):
+				// O VSUP.app foi apagado: o agente sai junto.
+				logf("VSUP.app não existe mais: removendo o agente")
 				_ = uninstallService()
 				return
+			case err == nil && start != nil && !os.SameFile(start, now):
+				// VSUP atualizado (binário trocado): sai e o launchd sobe a versão nova.
+				logf("VSUP atualizado: reiniciando o agente")
+				close(stop)
+				<-done
+				os.Exit(0)
 			}
 		}
 	}
-}
-
-func vsupServiceInstalled() bool {
-	m, _ := filepath.Glob("/Library/LaunchDaemons/*VSUP_service.plist")
-	return len(m) > 0
 }
 
 func installService() error {
