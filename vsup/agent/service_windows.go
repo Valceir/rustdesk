@@ -130,26 +130,29 @@ func machineGUID() string {
 	return v
 }
 
-// Onde o VSUP guarda a configuração (com o ID) no Windows.
-func configCandidates() []string {
+// Onde o programa (VDesk ou o antigo VSUP) guarda a configuração, com o ID, no Windows.
+func configCandidatesFor(app string) []string {
 	win := os.Getenv("SystemRoot")
 	if win == "" {
 		win = `C:\Windows`
 	}
+	rel := filepath.Join("AppData", "Roaming", app, "config", app+".toml")
 	c := []string{
-		filepath.Join(win, `ServiceProfiles\LocalService\AppData\Roaming\VSUP\config\VSUP.toml`),
-		filepath.Join(win, `System32\config\systemprofile\AppData\Roaming\VSUP\config\VSUP.toml`),
+		filepath.Join(win, `ServiceProfiles\LocalService`, rel),
+		filepath.Join(win, `System32\config\systemprofile`, rel),
 	}
 	if d, err := os.UserConfigDir(); err == nil {
-		c = append(c, filepath.Join(d, `VSUP\config\VSUP.toml`))
+		c = append(c, filepath.Join(d, app, "config", app+".toml"))
 	}
 	return c
 }
 
-func logDir() string {
+func logDir() string { return logDirFor(AppName) }
+
+func logDirFor(app string) string {
 	d := os.Getenv("ProgramData")
 	if d == "" {
 		d = `C:\ProgramData`
 	}
-	return filepath.Join(d, "VSUP")
+	return filepath.Join(d, app)
 }

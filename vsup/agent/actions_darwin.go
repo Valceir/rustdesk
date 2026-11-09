@@ -134,7 +134,7 @@ func notifyConsoleUser(msg string) {
 	if uid == "" || uid == "0" || user == "" {
 		return
 	}
-	script := fmt.Sprintf(`display alert "VSUP" message %q giving up after 55`, msg)
+	script := fmt.Sprintf(`display alert "VDesk" message %q giving up after 55`, msg)
 	cmd := exec.Command("/bin/launchctl", "asuser", uid, "/usr/bin/sudo", "-u", user, "/usr/bin/osascript", "-e", script)
 	if cmd.Start() == nil {
 		go func() { _ = cmd.Wait() }()

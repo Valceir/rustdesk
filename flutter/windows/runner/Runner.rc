@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "V.S.A. Solutions" "\0"
-            VALUE "FileDescription", "VSUP - Suporte remoto V.S.A. Solutions" "\0"
+            VALUE "FileDescription", "VDesk - Acesso remoto V.S.A. Solutions" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "rustdesk" "\0"
             VALUE "LegalCopyright", "Desenvolvido pela V.S.A. Solutions. Baseado no RustDesk (Purslane Tech Pte. Ltd.), AGPL-3.0." "\0"
             VALUE "OriginalFilename", "rustdesk.exe" "\0"
-            VALUE "ProductName", "VSUP" "\0"
+            VALUE "ProductName", "VDesk" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -39,7 +39,7 @@ type agent struct {
 
 // run é o laço principal; termina quando stop é fechado.
 func run(stop <-chan struct{}) {
-	logf("VSUP Agent %s iniciado", Version)
+	logf("VDesk Agent %s iniciado", Version)
 	a := &agent{
 		http: &http.Client{Timeout: 60 * time.Second},
 		poll: &http.Client{Timeout: 45 * time.Second},
@@ -71,7 +71,10 @@ func run(stop <-chan struct{}) {
 func (a *agent) step(stop <-chan struct{}) error {
 	id := readRustdeskID()
 	if id == "" {
-		return errors.New("ID do VSUP ainda não disponível")
+		return errors.New("ID do VDesk ainda não disponível")
+	}
+	if err := a.removeLegacy(); err != nil {
+		return err
 	}
 	if a.st.Token == "" || a.st.RustdeskID != id || a.st.Version != Version {
 		if err := a.register(id); err != nil {
@@ -198,7 +201,7 @@ func (a *agent) reportWith(token, id string, ok bool, output string) {
 }
 
 func (a *agent) headers(req *http.Request, token string) {
-	req.Header.Set("User-Agent", "VSUP-Agent/"+Version)
+	req.Header.Set("User-Agent", "VDesk-Agent/"+Version)
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -255,16 +258,19 @@ func sleep(stop <-chan struct{}, d time.Duration) bool {
 	}
 }
 
-// ---------- ID do VSUP ----------
+// ---------- ID do VDesk ----------
 
 var idRe = regexp.MustCompile(`(?m)^id\s*=\s*['"]([^'"]+)['"]`)
 
-// readRustdeskID lê o ID do arquivo de configuração do serviço do VSUP.
+// readRustdeskID lê o ID do arquivo de configuração do serviço do VDesk.
 func readRustdeskID() string {
-	if id := os.Getenv("VSUP_TEST_ID"); id != "" {
+	if id := os.Getenv("VDESK_TEST_ID"); id != "" {
 		return id
 	}
-	candidates := configCandidates()
+	return readIDFrom(configCandidatesFor(AppName))
+}
+
+func readIDFrom(candidates []string) string {
 	for _, p := range candidates {
 		data, err := os.ReadFile(p)
 		if err != nil {
@@ -285,7 +291,7 @@ func stateDir() string {
 	if err != nil {
 		d = os.TempDir()
 	}
-	return filepath.Join(d, "VSUP")
+	return filepath.Join(d, AppName)
 }
 
 func loadState() state {

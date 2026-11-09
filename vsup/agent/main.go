@@ -1,12 +1,12 @@
-// Agente VSUP: inventário do PC e canal de comandos com o painel.
+// Agente VDesk (antigo VSUP): inventário do PC e canal de comandos com o painel.
 // Desenvolvido pela V.S.A. Solutions.
 //
 // Uso:
 //
-//	vsup-agent install     cria e inicia o serviço do Windows (chamado pelo instalador do VSUP)
-//	vsup-agent uninstall   para e remove o serviço
-//	vsup-agent inventory   mostra o inventário em JSON (teste)
-//	vsup-agent debug       roda no console, sem serviço (teste)
+//	vdesk-agent install     cria e inicia o serviço (chamado pelo instalador do VDesk)
+//	vdesk-agent uninstall   para e remove o serviço
+//	vdesk-agent inventory   mostra o inventário em JSON (teste)
+//	vdesk-agent debug       roda no console, sem serviço (teste)
 package main
 
 import (
@@ -19,16 +19,18 @@ import (
 var Version = "dev"
 
 const (
-	ServiceName    = "VSUPAgent"
-	ServiceDisplay = "VSUP Agent"
-	ServiceDesc    = "Agente do VSUP: inventário e ações de suporte da V.S.A. Solutions."
-	defaultPanel   = "https://vsup.vsasolutions.com.br"
+	AppName        = "VDesk"
+	LegacyName     = "VSUP" // nome antigo: o agente migra e remove o VSUP do PC
+	ServiceName    = "VDeskAgent"
+	ServiceDisplay = "VDesk Agent"
+	ServiceDesc    = "Agente do VDesk: inventário e ações de suporte da V.S.A. Solutions."
+	defaultPanel   = "https://vdesk.vsasolutions.com.br"
 )
 
-// PanelURL pode ser trocado para testes com a variável VSUP_PANEL_URL (só administradores definem
+// PanelURL pode ser trocado para testes com a variável VDESK_PANEL_URL (só administradores definem
 // variáveis de ambiente do sistema).
 var PanelURL = func() string {
-	if u := os.Getenv("VSUP_PANEL_URL"); u != "" {
+	if u := os.Getenv("VDESK_PANEL_URL"); u != "" {
 		return u
 	}
 	return defaultPanel
@@ -41,7 +43,7 @@ func main() {
 	}
 	switch cmd {
 	case "install":
-		// Nunca falha a instalação do VSUP por causa do agente.
+		// Nunca falha a instalação do VDesk por causa do agente.
 		if err := installService(); err != nil {
 			logf("install: %v", err)
 			fmt.Println("aviso:", err)
@@ -68,6 +70,6 @@ func main() {
 			runService()
 			return
 		}
-		fmt.Println("VSUP Agent", Version, "- uso: vsup-agent install | uninstall | inventory | debug")
+		fmt.Println("VDesk Agent", Version, "- uso: vdesk-agent install | uninstall | inventory | debug")
 	}
 }

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = VSUP
+PRODUCT_NAME = VDesk
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = br.com.vsasolutions.vsup
+PRODUCT_BUNDLE_IDENTIFIER = br.com.vsasolutions.vdesk
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Desenvolvido pela V.S.A. Solutions. Baseado no RustDesk (Purslane Tech Pte. Ltd.), AGPL-3.0.

@@ -17,10 +17,10 @@ import (
 	"time"
 )
 
-// No macOS o agente é um LaunchDaemon (root). O serviço do VSUP chama "vsup-agent install" sempre que
-// inicia, então a instalação e as atualizações do VSUP já deixam o agente na versão do app.
+// No macOS o agente é um LaunchDaemon (root). O serviço do VDesk chama "vdesk-agent install" sempre que
+// inicia, então a instalação e as atualizações do VDesk já deixam o agente na versão do app.
 const (
-	launchdLabel = "br.com.vsasolutions.vsup.agent"
+	launchdLabel = "br.com.vsasolutions.vdesk.agent"
 	plistPath    = "/Library/LaunchDaemons/" + launchdLabel + ".plist"
 )
 
@@ -73,13 +73,13 @@ func runService() {
 			now, err := os.Stat(exe)
 			switch {
 			case errors.Is(err, os.ErrNotExist):
-				// O VSUP.app foi apagado: o agente sai junto.
-				logf("VSUP.app não existe mais: removendo o agente")
+				// O VDesk.app foi apagado: o agente sai junto.
+				logf("VDesk.app não existe mais: removendo o agente")
 				_ = uninstallService()
 				return
 			case err == nil && start != nil && !os.SameFile(start, now):
-				// VSUP atualizado (binário trocado): sai e o launchd sobe a versão nova.
-				logf("VSUP atualizado: reiniciando o agente")
+				// VDesk atualizado (binário trocado): sai e o launchd sobe a versão nova.
+				logf("VDesk atualizado: reiniciando o agente")
 				close(stop)
 				<-done
 				os.Exit(0)
@@ -102,7 +102,7 @@ func installService() error {
 	body := fmt.Sprintf(plistTmpl, launchdLabel, exe)
 	target := "system/" + launchdLabel
 	if old, err := os.ReadFile(plistPath); err == nil && string(old) == body && launchctl("print", target) == nil {
-		// Mesmo caminho: reinicia para rodar o binário novo depois de uma atualização do VSUP.
+		// Mesmo caminho: reinicia para rodar o binário novo depois de uma atualização do VDesk.
 		return launchctl("kickstart", "-k", target)
 	}
 	_ = launchctl("bootout", target)
@@ -134,7 +134,7 @@ func launchctl(args ...string) error {
 
 var platformUUIDRe = regexp.MustCompile(`"IOPlatformUUID"\s*=\s*"([^"]+)"`)
 
-// machineGUID é o IOPlatformUUID, o mesmo que o VSUP usa para criptografar o ID.
+// machineGUID é o IOPlatformUUID, o mesmo que o VDesk usa para criptografar o ID.
 func machineGUID() string {
 	out, err := exec.Command("/usr/sbin/ioreg", "-rd1", "-c", "IOPlatformExpertDevice").Output()
 	if err != nil {
@@ -146,12 +146,12 @@ func machineGUID() string {
 	return ""
 }
 
-// O serviço do VSUP roda como root (/var/root); o app do usuário guarda a mesma configuração na pasta dele.
-func configCandidates() []string {
+// O serviço roda como root (/var/root); o app do usuário guarda a mesma configuração na pasta dele.
+func configCandidatesFor(app string) []string {
 	var c []string
 	for _, pat := range []string{
-		"/var/root/Library/Preferences/*.VSUP/VSUP.toml",
-		"/Users/*/Library/Preferences/*.VSUP/VSUP.toml",
+		"/var/root/Library/Preferences/*." + app + "/" + app + ".toml",
+		"/Users/*/Library/Preferences/*." + app + "/" + app + ".toml",
 	} {
 		m, _ := filepath.Glob(pat)
 		c = append(c, m...)
@@ -159,4 +159,6 @@ func configCandidates() []string {
 	return c
 }
 
-func logDir() string { return "/Library/Logs/VSUP" }
+func logDir() string { return logDirFor(AppName) }
+
+func logDirFor(app string) string { return "/Library/Logs/" + app }

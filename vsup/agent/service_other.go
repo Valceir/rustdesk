@@ -20,9 +20,11 @@ func machineGUID() string {
 	return strings.TrimSpace(string(b))
 }
 
-func configCandidates() []string {
+func configCandidatesFor(app string) []string {
 	d, _ := os.UserConfigDir()
-	return []string{filepath.Join(d, "VSUP", "VSUP.toml")}
+	return []string{filepath.Join(d, app, app+".toml")}
 }
 
-func logDir() string { return filepath.Join(os.TempDir(), "VSUP") }
+func logDir() string { return logDirFor(AppName) }
+
+func logDirFor(app string) string { return filepath.Join(os.TempDir(), app) }

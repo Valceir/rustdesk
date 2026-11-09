@@ -1626,12 +1626,22 @@ fn get_after_install(
     ", create_service=get_create_service(&exe), vsup_agent=vsup_agent_cmd(exe, "install"))
 }
 
+/// VDesk: o agente do VSUP 1.6 atualiza rodando o instalador novo com --update. Na troca de VSUP para
+/// VDesk ainda não existe VDesk instalado, então instala do zero (silencioso); a configuração vem do VSUP
+/// na primeira execução e o agente do VDesk remove o VSUP depois de conferir o ID.
+pub fn vdesk_update_me() -> ResultType<()> {
+    if is_installed() {
+        return update_me(false);
+    }
+    install_me(get_silent_install_options(None), "".to_owned(), true, false)
+}
+
 /// VSUP: o agente (inventário e ações) fica ao lado do executável e tem serviço próprio.
 fn vsup_agent_cmd(exe: &str, operation: &str) -> String {
     let Some(dir) = std::path::Path::new(exe).parent() else {
         return "".to_owned();
     };
-    let agent = escape_nested_cmd_ampersands(&dir.join("vsup-agent.exe").to_string_lossy());
+    let agent = escape_nested_cmd_ampersands(&dir.join("vdesk-agent.exe").to_string_lossy());
     format!("if exist \"{agent}\" \"{agent}\" {operation}")
 }
 
@@ -3651,7 +3661,7 @@ chcp 65001
 sc stop {app_name}
 taskkill /F /IM {app_name}.exe{filter}
 {reg_cmd}
-sc stop VSUPAgent
+sc stop VDeskAgent
 {copy_exe}
 {rename_exe}
 {remove_meta_toml}

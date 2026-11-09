@@ -1,7 +1,7 @@
-# VSUP: compila (multiplataforma) Windows x64, Android (APK universal) e macOS (Apple Silicon e Intel)
-# e publica tudo na release vsup-X.Y.Z.
+# VDesk (antigo VSUP): compila Windows x64, Android (APK universal) e macOS (Apple Silicon e Intel)
+# e publica tudo na release vdesk-X.Y.Z.
 # Dispara quando o arquivo VSUP_VERSAO muda na branch vsup, ou manualmente pela aba Actions.
-name: VSUP - compilar
+name: VDesk - compilar
 
 on:
   push:
@@ -186,8 +186,8 @@ jobs:
         run: |
           cd vsup/agent
           go vet ./...
-          go build -trimpath -ldflags "-s -w -X main.Version=${VSUP_VERSION}" -o ../../rustdesk/vsup-agent.exe .
-          ls -l ../../rustdesk/vsup-agent.exe
+          go build -trimpath -ldflags "-s -w -X main.Version=${VSUP_VERSION}" -o ../../rustdesk/vdesk-agent.exe .
+          ls -l ../../rustdesk/vdesk-agent.exe
 
       - name: find Runner.res
         continue-on-error: true
@@ -207,19 +207,19 @@ jobs:
         run: |
           sed -i '/dpiAware/d' res/manifest.xml
           # O instalador procura <nome do app>.exe; sem renomear, o serviço aponta para um arquivo que não existe.
-          mv ./rustdesk/rustdesk.exe ./rustdesk/VSUP.exe
+          mv ./rustdesk/rustdesk.exe ./rustdesk/VDesk.exe
           pushd ./libs/portable
           pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/VSUP.exe
+          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/VDesk.exe
           popd
           mkdir -p ./SaidaVSUP
-          mv ./target/release/rustdesk-portable-packer.exe ./SaidaVSUP/VSUP-${VSUP_VERSION}-windows.exe
+          mv ./target/release/rustdesk-portable-packer.exe ./SaidaVSUP/VDesk-${VSUP_VERSION}-windows.exe
           ls -l ./SaidaVSUP
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: VSUP-windows
+          name: VDesk-windows
           path: ./SaidaVSUP
 
   # ---------------------------------------------------------------- Android
@@ -409,14 +409,14 @@ jobs:
             --build-name "$VSUP_VERSION" --build-number "${{ github.run_number }}"
           cd ..
           mkdir -p SaidaVSUP
-          mv flutter/build/app/outputs/flutter-apk/app-release.apk "SaidaVSUP/VSUP-${VSUP_VERSION}-android.apk"
+          mv flutter/build/app/outputs/flutter-apk/app-release.apk "SaidaVSUP/VDesk-${VSUP_VERSION}-android.apk"
           rm -f ./flutter/android/key.properties "$RUNNER_TEMP/vsup.jks"
           ls -l SaidaVSUP
 
       - name: Upload APK
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: VSUP-android
+          name: VDesk-android
           path: ./SaidaVSUP
 
   # ---------------------------------------------------------------- macOS
@@ -531,27 +531,27 @@ jobs:
           cd vsup/agent
           GOOS=darwin GOARCH=$GOARCH go vet ./...
           GOOS=darwin GOARCH=$GOARCH go build -trimpath -ldflags "-s -w -X main.Version=${VSUP_VERSION}" \
-            -o ../../flutter/build/macos/Build/Products/Release/VSUP.app/Contents/MacOS/vsup-agent .
-          file ../../flutter/build/macos/Build/Products/Release/VSUP.app/Contents/MacOS/vsup-agent
+            -o ../../flutter/build/macos/Build/Products/Release/VDesk.app/Contents/MacOS/vdesk-agent .
+          file ../../flutter/build/macos/Build/Products/Release/VDesk.app/Contents/MacOS/vdesk-agent
 
       - name: Create DMG
         run: |
-          APP=./flutter/build/macos/Build/Products/Release/VSUP.app
-          test -x "$APP/Contents/MacOS/VSUP"
-          # O build.py copia o "service" e o passo anterior o vsup-agent depois da assinatura do Flutter: assina de novo (ad-hoc)
+          APP=./flutter/build/macos/Build/Products/Release/VDesk.app
+          test -x "$APP/Contents/MacOS/VDesk"
+          # O build.py copia o "service" e o passo anterior o vdesk-agent depois da assinatura do Flutter: assina de novo (ad-hoc)
           codesign --force --deep -s - "$APP"
           codesign --verify --deep --strict "$APP"
           CREATE_DMG="$(readlink -f "$(command -v create-dmg)")"
           sed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' "$CREATE_DMG"
           mkdir -p SaidaVSUP
-          create-dmg --volname "VSUP" --icon "VSUP.app" 200 190 --hide-extension "VSUP.app" --window-size 800 400 \
-            --app-drop-link 600 185 "SaidaVSUP/VSUP-${VSUP_VERSION}-macos-${{ matrix.job.arch }}.dmg" "$APP"
+          create-dmg --volname "VDesk" --icon "VDesk.app" 200 190 --hide-extension "VDesk.app" --window-size 800 400 \
+            --app-drop-link 600 185 "SaidaVSUP/VDesk-${VSUP_VERSION}-macos-${{ matrix.job.arch }}.dmg" "$APP"
           ls -l SaidaVSUP
 
       - name: Upload DMG
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: VSUP-macos-${{ matrix.job.arch }}
+          name: VDesk-macos-${{ matrix.job.arch }}
           path: ./SaidaVSUP
 
   # ---------------------------------------------------------------- Publicação
@@ -572,7 +572,7 @@ jobs:
       - name: Baixar arquivos
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          pattern: VSUP-*
+          pattern: VDesk-*
           path: ./SaidaVSUP
           merge-multiple: true
 
@@ -582,10 +582,10 @@ jobs:
       - name: Publicar release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         with:
-          tag_name: vsup-${{ env.VSUP_VERSION }}
-          name: VSUP ${{ env.VSUP_VERSION }}
+          tag_name: vdesk-${{ env.VSUP_VERSION }}
+          name: VDesk ${{ env.VSUP_VERSION }}
           body: |
-            VSUP ${{ env.VSUP_VERSION }} (base RustDesk ${{ env.VERSION }}). Desenvolvido pela V.S.A. Solutions.
-            Windows, Android e macOS. Download para clientes: https://vsup.vsasolutions.com.br/baixar
+            VDesk ${{ env.VSUP_VERSION }} (base RustDesk ${{ env.VERSION }}). Desenvolvido pela V.S.A. Solutions.
+            Windows, Android e macOS. Download para clientes: https://vdesk.vsasolutions.com.br/baixar
           prerelease: false
-          files: ./SaidaVSUP/VSUP-*
+          files: ./SaidaVSUP/VDesk-*

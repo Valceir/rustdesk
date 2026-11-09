@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-// Atualização do VSUP pelo painel. O instalador vem dos releases do GitHub e só roda se o SHA-256 bater
+// Atualização do VDesk pelo painel. O instalador vem dos releases do GitHub e só roda se o SHA-256 bater
 // com o que o painel informou. Como a instalação reinicia o próprio agente, o resultado é enviado pelo
 // agente novo, a partir do arquivo de pendência.
 
@@ -48,7 +48,10 @@ type pendingUpdate struct {
 }
 
 func pendingPath() string { return filepath.Join(logDir(), "update-pending.json") }
-func updateDir() string   { return filepath.Join(logDir(), "update") }
+
+// Pendência deixada pelo agente do VSUP quando ele instalou o VDesk.
+func legacyPendingPath() string { return filepath.Join(logDirFor(LegacyName), "update-pending.json") }
+func updateDir() string         { return filepath.Join(logDir(), "update") }
 
 func (a *agent) startUpdate(c command) {
 	var args struct {
@@ -68,7 +71,7 @@ func (a *agent) startUpdate(c command) {
 		return
 	}
 	if args.Version == Version {
-		a.reportWith(token, c.ID, true, "O VSUP já está na versão "+Version+".")
+		a.reportWith(token, c.ID, true, "O VDesk já está na versão "+Version+".")
 		return
 	}
 	if err := allowedURL(args.URL); err != nil {
@@ -87,7 +90,7 @@ func (a *agent) startUpdate(c command) {
 			fail(fmt.Errorf("gravar pendência: %w", err))
 			return
 		}
-		logf("instalando VSUP %s (de %s)", args.Version, Version)
+		logf("instalando VDesk %s (de %s)", args.Version, Version)
 		if err := installUpdate(path); err != nil {
 			_ = os.Remove(pendingPath())
 			fail(fmt.Errorf("instalador: %w", err))
@@ -115,7 +118,7 @@ func download(raw, sum string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "VSUP-Agent/"+Version)
+	req.Header.Set("User-Agent", "VDesk-Agent/"+Version)
 	client := &http.Client{Transport: updateTransport, CheckRedirect: func(r *http.Request, via []*http.Request) error {
 		if len(via) > 5 || r.URL.Scheme != "https" || !updateHosts[r.URL.Hostname()] {
 			return errors.New("redirecionamento não permitido")
@@ -159,6 +162,14 @@ func download(raw, sum string) (string, error) {
 
 // finishPendingUpdate roda depois do registro: informa ao painel como terminou a atualização.
 func (a *agent) finishPendingUpdate() {
+	if _, err := os.Stat(pendingPath()); err != nil {
+		if b, err := os.ReadFile(legacyPendingPath()); err == nil {
+			_ = os.MkdirAll(logDir(), 0o700)
+			if os.WriteFile(pendingPath(), b, 0o600) == nil {
+				_ = os.Remove(legacyPendingPath())
+			}
+		}
+	}
 	b, err := os.ReadFile(pendingPath())
 	if err != nil {
 		return
@@ -170,7 +181,7 @@ func (a *agent) finishPendingUpdate() {
 	}
 	switch {
 	case Version == p.To:
-		a.report(p.CommandID, true, fmt.Sprintf("VSUP atualizado de %s para %s.", p.From, p.To)+updateNote)
+		a.report(p.CommandID, true, fmt.Sprintf("Atualizado de %s para VDesk %s.", p.From, p.To)+updateNote)
 	case time.Since(p.At) > updateGiveUp:
 		a.report(p.CommandID, false, fmt.Sprintf("A instalação não terminou: o PC continua na versão %s.", Version))
 	default:

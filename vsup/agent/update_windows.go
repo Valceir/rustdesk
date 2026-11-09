@@ -7,8 +7,8 @@ import (
 	"syscall"
 )
 
-// installUpdate roda o instalador com --update, o mesmo caminho da atualização do VSUP: troca os arquivos
-// sem desinstalar, mantém ID e configuração, reinicia o serviço e reabre o VSUP na sessão do usuário.
+// installUpdate roda o instalador com --update, o mesmo caminho da atualização do VDesk: troca os arquivos
+// sem desinstalar, mantém ID e configuração, reinicia o serviço e reabre o VDesk na sessão do usuário.
 // O processo fica separado do agente, que é parado pelo próprio instalador.
 func installUpdate(path string) error {
 	const detachedProcess = 0x00000008

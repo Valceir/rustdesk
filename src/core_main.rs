@@ -254,7 +254,7 @@ pub fn core_main() -> Option<CoreMainAction> {
                         "Update failed!".to_string()
                     }
                     Ok(false) => "Update failed!".to_string(),
-                    Ok(true) => match platform::update_me(false) {
+                    Ok(true) => match platform::vdesk_update_me() {
                         Ok(_) => "Updated successfully!".to_string(),
                         Err(err) => {
                             log::error!("Failed with error: {err}");

@@ -2521,13 +2521,85 @@ pub fn load_custom_client() {
 
 const VSUP_BUILTIN_CONFIG: bool = true;
 
+/// VDesk (antigo VSUP): na primeira execução copia a configuração do VSUP (ID, chaves, senhas,
+/// preferências) para o lugar do VDesk, assim o computador mantém o mesmo ID. Roda antes de qualquer
+/// leitura da configuração e não mexe nos arquivos do VSUP.
+fn vdesk_migrate_config() {
+    const OLD: &str = "VSUP";
+    let new_main = config::Config::file();
+    if new_main.exists() {
+        return;
+    }
+    let Some(new_dir) = new_main.parent().map(|p| p.to_path_buf()) else {
+        return;
+    };
+    let new_name = config::APP_NAME.read().unwrap().clone();
+    let suffix = format!(".{new_name}");
+    let old_dir: std::path::PathBuf = new_dir
+        .components()
+        .map(|c| {
+            let s = c.as_os_str().to_string_lossy().to_string();
+            if s == new_name {
+                return OLD.to_owned();
+            }
+            match s.strip_suffix(suffix.as_str()) {
+                Some(prefix) => format!("{prefix}.{OLD}"),
+                None => s.clone(),
+            }
+        })
+        .collect();
+    let Ok(entries) = std::fs::read_dir(&old_dir) else {
+        return;
+    };
+    if !old_dir.join(format!("{OLD}.toml")).is_file() {
+        return;
+    }
+    if let Err(e) = std::fs::create_dir_all(&new_dir) {
+        log::error!("VDesk: criar {:?}: {}", new_dir, e);
+        return;
+    }
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let target = match name.strip_prefix(OLD) {
+            Some(rest) => new_dir.join(format!("{new_name}{rest}")),
+            None if name == "peers" => new_dir.join("peers"),
+            None => continue,
+        };
+        if target.exists() {
+            continue;
+        }
+        let res = if entry.path().is_dir() {
+            vdesk_copy_dir(&entry.path(), &target)
+        } else {
+            std::fs::copy(entry.path(), &target).map(|_| ())
+        };
+        if let Err(e) = res {
+            log::error!("VDesk: copiar {:?}: {}", entry.path(), e);
+        }
+    }
+    log::info!("VDesk: configuração do VSUP copiada de {:?}", old_dir);
+}
+
+fn vdesk_copy_dir(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)?.flatten() {
+        let dest = to.join(entry.file_name());
+        if entry.path().is_dir() {
+            vdesk_copy_dir(&entry.path(), &dest)?;
+        } else {
+            std::fs::copy(entry.path(), dest)?;
+        }
+    }
+    Ok(())
+}
+
 /// VSUP: servidor, chave e painel fixos (não podem ser alterados pelo usuário).
 fn apply_vsup_config() {
     let data = serde_json::json!({
         "override-settings": {
-            "custom-rendezvous-server": "vsup.vsasolutions.com.br",
-            "relay-server": "vsup.vsasolutions.com.br",
-            "api-server": "https://vsup.vsasolutions.com.br",
+            "custom-rendezvous-server": "vdesk.vsasolutions.com.br",
+            "relay-server": "vdesk.vsasolutions.com.br",
+            "api-server": "https://vdesk.vsasolutions.com.br",
             "key": "m3cvyKsQo7c19xPxQ+ZdExiIy5FOZhJkSVUNgiBN1q4=",
             "enable-check-update": "N",
             "allow-auto-update": "N",
@@ -2537,7 +2609,8 @@ fn apply_vsup_config() {
             "hide-powered-by-me": "Y",
         },
     });
-    *config::APP_NAME.write().unwrap() = "VSUP".to_owned();
+    *config::APP_NAME.write().unwrap() = "VDesk".to_owned();
+    vdesk_migrate_config();
     let mut map_display_settings = HashMap::new();
     for s in keys::KEYS_DISPLAY_SETTINGS {
         map_display_settings.insert(s.replace("_", "-"), s);

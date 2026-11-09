@@ -858,7 +858,7 @@ pub fn lock_screen() {
 fn vsup_start_agent() {
     let Some(agent) = std::env::current_exe()
         .ok()
-        .and_then(|exe| exe.parent().map(|dir| dir.join("vsup-agent")))
+        .and_then(|exe| exe.parent().map(|dir| dir.join("vdesk-agent")))
     else {
         return;
     };
@@ -868,11 +868,11 @@ fn vsup_start_agent() {
     std::thread::spawn(move || {
         match std::process::Command::new(&agent).arg("install").output() {
             Ok(out) => log::info!(
-                "vsup-agent install: {} {}",
+                "vdesk-agent install: {} {}",
                 out.status,
                 String::from_utf8_lossy(&out.stdout).trim()
             ),
-            Err(e) => log::error!("vsup-agent install: {}", e),
+            Err(e) => log::error!("vdesk-agent install: {}", e),
         }
     });
 }

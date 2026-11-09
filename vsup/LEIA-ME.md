@@ -1,3 +1,17 @@
+# VDesk (antigo VSUP)
+
+A partir da versão 2.0.0 o programa se chama **VDesk** (APP_NAME, pastas, serviço `VDeskAgent`, app
+`VDesk.app`, bundle `br.com.vsasolutions.vdesk`, domínio `vdesk.vsasolutions.com.br`). O Android mantém o
+applicationId `br.com.vsasolutions.vsup` para instalar por cima.
+
+Migração do VSUP:
+- `src/common.rs` `vdesk_migrate_config()`: na primeira execução o VDesk copia `VSUP*.toml` e `peers/` da
+  pasta do VSUP para a do VDesk (mesmo ID, chaves e senhas). Não mexe nos arquivos do VSUP.
+- `src/platform/windows.rs` `vdesk_update_me()`: `VDesk.exe --update` instala do zero quando só existe o
+  VSUP (é o que o agente do VSUP 1.6 roda ao receber a atualização pelo painel).
+- `vsup/agent/legacy*.go`: o agente do VDesk só remove o VSUP (desinstalador do VSUP no Windows; launchd e
+  VSUP.app no Mac) depois de ver o VDesk com o mesmo ID; até lá não se registra no painel.
+
 # VSUP – cliente Windows
 
 Fork do RustDesk com a configuração da V.S.A. Solutions embutida. Desenvolvido pela V.S.A. Solutions.

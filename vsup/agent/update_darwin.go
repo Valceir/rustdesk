@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-const updateNote = " No Mac, confira se Gravação de Tela e Acessibilidade continuam liberadas para o VSUP."
+const updateNote = " No Mac, confira se Gravação de Tela e Acessibilidade continuam liberadas para o VDesk."
 
-// installUpdate monta o .dmg, troca o VSUP.app no lugar e reinicia o VSUP. O agente sai em seguida e o
+// installUpdate monta o .dmg, troca o VDesk.app no lugar e reinicia o VDesk. O agente sai em seguida e o
 // launchd sobe o agente novo, que informa o resultado.
 func installUpdate(dmg string) error {
 	exe, err := os.Executable()
@@ -23,7 +23,7 @@ func installUpdate(dmg string) error {
 	if p, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = p
 	}
-	app := filepath.Dir(filepath.Dir(filepath.Dir(exe))) // .../VSUP.app/Contents/MacOS/vsup-agent
+	app := filepath.Dir(filepath.Dir(filepath.Dir(exe))) // .../VDesk.app/Contents/MacOS/vdesk-agent
 	if !strings.HasSuffix(app, ".app") {
 		return fmt.Errorf("agente fora de um .app: %s", exe)
 	}
@@ -36,7 +36,7 @@ func installUpdate(dmg string) error {
 	defer exec.Command("/usr/bin/hdiutil", "detach", mnt, "-force").Run()
 
 	src := filepath.Join(mnt, filepath.Base(app))
-	if _, err := os.Stat(filepath.Join(src, "Contents", "MacOS", "vsup-agent")); err != nil {
+	if _, err := os.Stat(filepath.Join(src, "Contents", "MacOS", "vdesk-agent")); err != nil {
 		return fmt.Errorf("o .dmg não tem o %s esperado", filepath.Base(app))
 	}
 	staged := app + ".novo"
@@ -60,7 +60,7 @@ func installUpdate(dmg string) error {
 	}
 	_ = os.RemoveAll(old)
 
-	restartVSUP(app, uiRunning)
+	restartApp(app, uiRunning)
 	go func() {
 		time.Sleep(3 * time.Second)
 		os.Exit(0) // launchd (KeepAlive) sobe o agente novo
@@ -70,9 +70,9 @@ func installUpdate(dmg string) error {
 
 func appProcess(app string) string { return strings.TrimSuffix(filepath.Base(app), ".app") }
 
-// restartVSUP reinicia o serviço (root) e o servidor da sessão do usuário. Sem o serviço instalado
+// restartApp reinicia o serviço (root) e o servidor da sessão do usuário. Sem o serviço instalado
 // (acesso só com aceite), reabre o app para o usuário, senão o PC ficaria sem acesso até alguém abrir.
-func restartVSUP(app string, uiRunning bool) {
+func restartApp(app string, uiRunning bool) {
 	daemons, _ := filepath.Glob("/Library/LaunchDaemons/*" + appProcess(app) + "_service.plist")
 	agents, _ := filepath.Glob("/Library/LaunchAgents/*" + appProcess(app) + "_server.plist")
 	uid := cmdOut("stat", "-f", "%u", "/dev/console")
@@ -92,6 +92,6 @@ func restartVSUP(app string, uiRunning bool) {
 		}
 	}
 	if len(daemons) == 0 && len(agents) == 0 && !uiRunning {
-		logf("VSUP não estava aberto: abre na próxima vez que o usuário iniciar")
+		logf("VDesk não estava aberto: abre na próxima vez que o usuário iniciar")
 	}
 }
