@@ -21,6 +21,7 @@ var errUnauthorized = errors.New("token recusado pelo painel")
 type state struct {
 	RustdeskID string `json:"rustdesk_id"`
 	Token      string `json:"token"`
+	Version    string `json:"version"` // versão que se registrou; outra versão registra de novo
 }
 
 type command struct {
@@ -72,12 +73,13 @@ func (a *agent) step(stop <-chan struct{}) error {
 	if id == "" {
 		return errors.New("ID do VSUP ainda não disponível")
 	}
-	if a.st.Token == "" || a.st.RustdeskID != id {
+	if a.st.Token == "" || a.st.RustdeskID != id || a.st.Version != Version {
 		if err := a.register(id); err != nil {
 			return fmt.Errorf("registro: %w", err)
 		}
 		a.lastInv = time.Time{}
 	}
+	a.finishPendingUpdate()
 	if time.Since(a.lastInv) > inventoryInterval {
 		if err := a.sendInventory(); err != nil {
 			return a.handleErr("inventário", err)
@@ -116,7 +118,7 @@ func (a *agent) register(id string) error {
 	if resp.Token == "" {
 		return errors.New("painel não devolveu token")
 	}
-	a.st = state{RustdeskID: id, Token: resp.Token}
+	a.st = state{RustdeskID: id, Token: resp.Token, Version: Version}
 	saveState(a.st)
 	logf("registrado no painel com o ID %s", id)
 	return nil
@@ -164,6 +166,10 @@ func (a *agent) execute(c command) {
 			ok, output = false, err.Error()
 		}
 		a.report(c.ID, ok, output)
+		return
+	}
+	if c.Type == "update_vsup" {
+		a.startUpdate(c)
 		return
 	}
 	// Ações podem demorar (sfc, otimização de disco): rodam em paralelo sem travar o recebimento.

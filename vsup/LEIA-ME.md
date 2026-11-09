@@ -41,6 +41,11 @@ O servidor (`rustdesk-server`) é fixado no repositório do painel.
   É instalado pelo serviço do VSUP quando ele inicia (ou à mão: `sudo .../vsup-agent install`). Reinicia
   sozinho quando o VSUP.app é atualizado e se remove quando o app é apagado. Log em `/Library/Logs/VSUP/agent.log`. Ações: as mesmas do Windows,
   menos otimizar disco, sfc e Windows Update; mais `mac_update` (`softwareupdate --list`).
+- Atualização pelo painel (comando `update_vsup`, args url/sha256/version): o agente baixa o instalador do
+  release (só github.com e domínios de download do GitHub), confere o SHA-256 e instala. Windows: roda
+  `VSUP-x-windows.exe --update` separado do agente (mesmo caminho do update_me). Mac: monta o .dmg, troca o
+  VSUP.app e reinicia o serviço/servidor. A pendência fica em `update-pending.json` na pasta de log, e o agente
+  novo informa o resultado ao painel.
 - Testes: `vsup-agent.exe inventory` (mostra o JSON) e `vsup-agent.exe debug` (roda no console).
 - Requer Windows 10 ou mais novo (Go 1.24).
 
