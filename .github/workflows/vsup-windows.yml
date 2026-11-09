@@ -8,6 +8,12 @@ on:
     branches: [vsup]
     paths: [VSUP_VERSAO, .github/workflows/vsup-windows.yml]
   workflow_dispatch:
+    inputs:
+      somente:
+        description: "O que compilar (mac-apple-silicon: só refaz o Mac M1/M2/M3 da versão atual)"
+        type: choice
+        default: tudo
+        options: [tudo, mac-apple-silicon]
 
 permissions:
   contents: write
@@ -34,6 +40,7 @@ jobs:
     uses: ./.github/workflows/bridge.yml
 
   build-RustDeskTempTopMostWindow:
+    if: ${{ github.event.inputs.somente != 'mac-apple-silicon' }}
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     with:
       upload-artifact: true
@@ -45,6 +52,7 @@ jobs:
   build-windows:
     name: Windows x64
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
+    if: ${{ github.event.inputs.somente != 'mac-apple-silicon' }}
     runs-on: windows-2022
     env:
       TARGET: x86_64-pc-windows-msvc
@@ -218,6 +226,7 @@ jobs:
   android-lib:
     name: Android lib ${{ matrix.job.target }}
     needs: [generate-bridge]
+    if: ${{ github.event.inputs.somente != 'mac-apple-silicon' }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -310,6 +319,7 @@ jobs:
   android-apk:
     name: Android APK
     needs: [android-lib]
+    if: ${{ github.event.inputs.somente != 'mac-apple-silicon' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
@@ -417,9 +427,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job:
-          - { target: aarch64-apple-darwin, os: macos-15, arch: apple-silicon, extra-build-args: "--screencapturekit", vcpkg-triplet: arm64-osx }
-          - { target: x86_64-apple-darwin, os: macos-15-intel, arch: intel, extra-build-args: "", vcpkg-triplet: x64-osx }
+        # A fila das máquinas Apple Silicon do GitHub às vezes não anda: "somente: mac-apple-silicon" refaz só ele.
+        job: ${{ fromJSON(github.event.inputs.somente == 'mac-apple-silicon' && '[{"target":"aarch64-apple-darwin","os":"macos-15","arch":"apple-silicon","extra-build-args":"--screencapturekit","vcpkg-triplet":"arm64-osx"}]' || '[{"target":"aarch64-apple-darwin","os":"macos-15","arch":"apple-silicon","extra-build-args":"--screencapturekit","vcpkg-triplet":"arm64-osx"},{"target":"x86_64-apple-darwin","os":"macos-15-intel","arch":"intel","extra-build-args":"","vcpkg-triplet":"x64-osx"}]') }}
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
@@ -550,7 +559,7 @@ jobs:
     name: Publicar release
     needs: [build-windows, android-apk, macos]
     # Publica o que compilou: uma falha no Android ou no Mac não segura a versão do Windows.
-    if: ${{ !cancelled() && needs.build-windows.result == 'success' }}
+    if: ${{ !cancelled() && (needs.build-windows.result == 'success' || (github.event.inputs.somente == 'mac-apple-silicon' && needs.macos.result == 'success')) }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
